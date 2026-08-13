@@ -19,25 +19,30 @@
 
 ## Candidate order and decisions
 
-Apply the first non-empty stage:
+Gather candidates in order, then autofill only when disambiguation yields one confident pick:
 
-1. Exact normalized upstream alias from active `chainctl` metadata.
-2. Exact Chainguard repository name/path.
-3. Exact final path component, only when it identifies an unambiguous repository after FIPS filtering.
-4. Conservative fuzzy name candidates.
+1. Exact normalized upstream alias from active `chainctl` metadata, including the same project path under a different registry and generically compatible org/path spellings (substantial prefix match on namespace tokens; no vendor allowlists).
+2. Exact Chainguard repository name/path (including preferred FIPS / IAMGuarded variants).
+3. Exact final path component, including `-fips` / `-iamguarded` variant forms of that component.
+4. Stem/keyword pool: repositories whose name equals the final component, starts with `<final>-`, or matches after stripping `-fips` / `-iamguarded`.
+5. Conservative fuzzy name candidates (never auto-filled).
 
-FIPS filtering precedes the final decision:
+Before deciding, collapse duplicate catalog rows that share the same repository name (prefer classified tier, aliases, richer active tags).
 
-- Explicit non-FIPS: exclude repositories marked by `catalogTier/catalog_tier`, bundles, or a `-fips` name as FIPS.
-- Explicit FIPS: retain only candidates verified by those same fields, and prefer the exact `-fips` repository.
-- Unspecified: do not infer or filter on FIPS.
+Disambiguation / autofill rules:
+
+- Prefer a repository whose base name (variants stripped) equals the upstream final component — e.g. pick `cert-manager-controller` from a shared cert-manager alias family.
+- When that final component is generic or shared (`agent`, `operator`, `controller`, or several `*/widget` repos), rank remaining candidates using other upstream path tokens (org/namespace segments). Prefer a name that is `{namespace}-{final}` for a compatible namespace token. Leave blank when those tokens do not uniquely select a candidate.
+- Explicit non-FIPS: exclude FIPS repositories (`catalogTier` / bundles / `-fips` name). Explicit FIPS: retain only FIPS repositories and prefer the exact `-fips` name. Unspecified FIPS: do not filter on FIPS.
+- Prefer non-`-iamguarded` repositories unless the upstream image is a Bitnami image (`bitnami/...`, bitnami registry, or bitnami legacy paths). For Bitnami, prefer the `-iamguarded` replacement when present.
+- If multiple distinct bases remain after those filters (for example unrelated `*-kubernetes-operator` hits), leave equivalent/verdict blank for review rather than guessing.
 
 Check requested tags only against active tags returned by `chainctl`. Distinguish:
 
-- `exact_image_exact_tag`: exact repository/alias match and every requested tag exists.
-- `image_available_tag_unavailable`: exact image exists, but one or more requested tags do not.
-- `multiple_possible_matches`: multiple exact-final-component or fuzzy candidates remain.
-- `possible_match_review`: one conservative fuzzy candidate remains; require review rather than silently treating it as exact.
+- `exact_image_exact_tag`: confident repository pick and every requested tag exists.
+- `image_available_tag_unavailable`: confident repository pick, but one or more requested tags do not.
+- `multiple_possible_matches`: candidate pool remains after filtering and no single pick is defensible; leave blank.
+- `possible_match_review`: one conservative fuzzy candidate remains; require review rather than autofill.
 - `no_match`: no defensible candidate exists.
 
 An active repository with `UNKNOWN`, missing, or internal/unclassified tier is evidence that the repository exists, not that it is customer-ready. State this limitation in verdict/notes. Never invent a customer registry namespace. Use `cgr.dev/ORGANIZATION/<repo>:<tag>` unless the user provides a destination organization.

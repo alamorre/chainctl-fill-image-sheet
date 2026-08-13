@@ -3,7 +3,7 @@
 
 import unittest
 
-from match_images import CatalogRepo, analyze_rows
+from match_images import CatalogRepo, analyze_rows, match_one
 
 
 CATALOG = [
@@ -13,6 +13,80 @@ CATALOG = [
     CatalogRepo("team/widget", "UNKNOWN", (), (), frozenset({"1.0"}), "4"),
     CatalogRepo("other/widget", "APPLICATION", (), (), frozenset({"1.0"}), "5"),
     CatalogRepo("postgresql", "BASE", (), (), frozenset({"16"}), "6"),
+    CatalogRepo(
+        "cert-manager-acmesolver",
+        "APPLICATION",
+        ("application",),
+        ("quay.io/jetstack/cert-manager-controller:latest",),
+        frozenset({"v1.19.3", "latest"}),
+        "7",
+    ),
+    CatalogRepo(
+        "cert-manager-controller",
+        "APPLICATION",
+        ("application",),
+        ("quay.io/jetstack/cert-manager-controller:latest",),
+        frozenset({"v1.19.3", "latest"}),
+        "8",
+    ),
+    CatalogRepo(
+        "cert-manager-controller-iamguarded",
+        "APPLICATION",
+        ("application",),
+        ("quay.io/jetstack/cert-manager-controller:latest",),
+        frozenset({"v1.19.3", "latest"}),
+        "9",
+    ),
+    CatalogRepo(
+        "cert-manager-webhook",
+        "APPLICATION",
+        ("application",),
+        ("quay.io/jetstack/cert-manager-controller:latest",),
+        frozenset({"v1.19.3", "latest"}),
+        "10",
+    ),
+    CatalogRepo("keda", "APPLICATION", ("application",), ("kedacore/keda:latest",), frozenset({"2.19.0", "latest"}), "11"),
+    CatalogRepo("keda", "UNKNOWN", (), (), frozenset({"2.19.0"}), "12"),
+    CatalogRepo(
+        "metrics-server",
+        "APPLICATION",
+        ("application",),
+        ("registry.k8s.io/metrics-server/metrics-server:latest",),
+        frozenset({"v0.8.0", "latest"}),
+        "13",
+    ),
+    CatalogRepo("metrics-server", "UNKNOWN", (), (), frozenset(), "14"),
+    CatalogRepo("metrics-server-iamguarded", "APPLICATION", ("application",), (), frozenset({"v0.8.0", "latest"}), "15"),
+    CatalogRepo("dask-kubernetes-operator", "APPLICATION", ("application",), (), frozenset({"1.0"}), "16"),
+    CatalogRepo("spark-kubernetes-operator", "APPLICATION", ("application",), (), frozenset({"1.0"}), "17"),
+    CatalogRepo("redis-iamguarded", "APPLICATION", ("application",), (), frozenset({"7", "latest"}), "18"),
+    CatalogRepo("nginx-iamguarded", "APPLICATION", ("application",), (), frozenset({"latest"}), "19"),
+    CatalogRepo(
+        "datadog-agent",
+        "APPLICATION",
+        ("application",),
+        ("docker.io/datadog/agent",),
+        frozenset({"7.73.0", "latest"}),
+        "20",
+    ),
+    CatalogRepo(
+        "datadog-cluster-agent",
+        "APPLICATION",
+        ("application",),
+        ("docker.io/datadog/agent",),
+        frozenset({"7.73.0", "latest"}),
+        "21",
+    ),
+    CatalogRepo(
+        "datadog-agent-fips",
+        "FIPS",
+        ("fips",),
+        ("docker.io/datadog/agent",),
+        frozenset({"7.73.0", "latest"}),
+        "22",
+    ),
+    CatalogRepo("github-runner-agent", "APPLICATION", ("application",), (), frozenset({"latest"}), "23"),
+    CatalogRepo("newrelic-infra-agent", "APPLICATION", ("application",), (), frozenset({"latest"}), "24"),
 ]
 
 
@@ -84,6 +158,65 @@ class MatcherTests(unittest.TestCase):
         match = analyze_rows(rows, CATALOG, None)["row_results"][0]["match"]
         self.assertEqual(match["status"], "possible_match_review")
         self.assertEqual(match["equivalent"], "")
+
+    def test_alias_family_autofills_matching_final_component(self):
+        match = match_one("quay.io/jetstack/cert-manager-controller:v1.19.3", "", "no", CATALOG, None)
+        self.assertEqual(match["status"], "exact_image_exact_tag")
+        self.assertEqual(match["candidates"], ["cert-manager-controller"])
+        self.assertIn("cert-manager-controller", match["equivalent"])
+        self.assertNotIn("iamguarded", match["equivalent"])
+
+    def test_duplicate_catalog_names_collapse_and_autofill(self):
+        match = match_one("ghcr.io/kedacore/keda:2.19.0", "", "no", CATALOG, None)
+        self.assertEqual(match["status"], "exact_image_exact_tag")
+        self.assertEqual(match["candidates"], ["keda"])
+        self.assertIn("/keda:2.19.0", match["equivalent"])
+
+    def test_metrics_server_prefers_non_iamguarded(self):
+        match = match_one("registry.k8s.io/metrics-server/metrics-server:v0.8.0", "", "no", CATALOG, None)
+        self.assertEqual(match["status"], "exact_image_exact_tag")
+        self.assertEqual(match["candidates"], ["metrics-server"])
+        self.assertNotIn("iamguarded", match["equivalent"])
+
+    def test_unrelated_operator_fuzzy_left_blank(self):
+        match = match_one("twingate/kubernetes-operator:1.1.2", "", "no", CATALOG, None)
+        self.assertIn(match["status"], {"multiple_possible_matches", "no_match", "possible_match_review"})
+        self.assertEqual(match["equivalent"], "")
+
+    def test_bitnami_prefers_iamguarded(self):
+        match = match_one("docker.io/bitnami/redis:7", "", "no", CATALOG, None)
+        self.assertEqual(match["status"], "exact_image_exact_tag")
+        self.assertIn("redis-iamguarded", match["equivalent"])
+
+    def test_non_bitnami_does_not_prefer_iamguarded(self):
+        match = match_one("nginx:1.25", "", "no", CATALOG, None)
+        self.assertEqual(match["status"], "exact_image_exact_tag")
+        self.assertIn("/nginx:1.25", match["equivalent"])
+        self.assertNotIn("iamguarded", match["equivalent"])
+
+    def test_generic_final_with_path_token_autofills_across_registries(self):
+        for source in (
+            "public.ecr.aws/datadog/agent:latest",
+            "gcr.io/datadoghq/agent:7.73.0",
+            "datadog/agent:latest",
+        ):
+            with self.subTest(source=source):
+                match = match_one(source, "", "no", CATALOG, None)
+                self.assertEqual(match["status"], "exact_image_exact_tag")
+                self.assertEqual(match["candidates"], ["datadog-agent"])
+                self.assertIn("/datadog-agent", match["equivalent"])
+                self.assertNotIn("cluster-agent", match["equivalent"])
+                self.assertNotIn("fips", match["equivalent"])
+
+    def test_generic_final_without_supporting_path_token_stays_blank(self):
+        match = match_one("acme/agent:latest", "", "no", CATALOG, None)
+        self.assertIn(match["status"], {"multiple_possible_matches", "no_match", "possible_match_review"})
+        self.assertEqual(match["equivalent"], "")
+
+    def test_namespaced_exact_final_uses_path_token(self):
+        match = match_one("registry.example.com/team/widget:1.0", "", "no", CATALOG, None)
+        self.assertEqual(match["status"], "exact_image_exact_tag")
+        self.assertEqual(match["candidates"], ["team/widget"])
 
 
 if __name__ == "__main__":
