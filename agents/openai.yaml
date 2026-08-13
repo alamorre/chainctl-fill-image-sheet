@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fill Chainguard Image Sheet"
+  short_description: "Match intake sheets to Chainguard images"
+  default_prompt: "Use $chainctl-fill-image-sheet to fill this image intake sheet with live Chainguard catalog data."

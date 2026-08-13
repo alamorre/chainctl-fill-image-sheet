@@ -1,0 +1,12 @@
+# Local/customer material; keep the sanitized assets/ template tracked.
+.customer-inputs/
+.run-cache/
+customer-output/
+outputs/
+*-filled.csv
+*-filled.xlsx
+*-filled.xls
+
+# Local interpreter artifacts.
+__pycache__/
+*.py[cod]

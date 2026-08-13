@@ -1,0 +1,4 @@
+"SANITIZED TEMPLATE — NO CUSTOMER DATA
+
+Use this file as a structural example. Input sheets may use different column names, order, grouping, or formatting.",Customer Shares,,,REQUIRED,,,,,Tally,,Image Metadata,,,,,,,,,,,OUTPUT,,
+Upstream Image Name (+ Tag),Version(s),FIPS Reqd.,Priority,Chaingaurd Equivalent,Image Request,ETA,Verdict (yes/no),Notes,Existing Image Type,Chainguard's Image Count,Source Repo URL,Dockerfile URL,Do you require a specific Major.minor version?  ,What's your version upgrade strategy? ,CPU Arch,Tag requirements,Does the image require a shell?,Does this image have any unique user and/or permissions issues?,Do you have any unique dependencies?,What is your process for testing/qualifying your current image?,Helm Values,(CG internal) Image Issue Tracker,In CGR.Dev,Image Progress
