@@ -35,7 +35,7 @@ The agent will confirm `chainguard-private`, authenticate, cache catalog JSON ou
 
 ### Optional
 
-- Pass a destination registry org (e.g. `acme`) so equivalents use `cgr.dev/acme/...` instead of the `ORGANIZATION` placeholder.
+- Equivalent references default to `cgr.dev/chainguard-private/...`. Pass a destination registry org (e.g. `acme`) to use `cgr.dev/acme/...` instead.
 - Say explicitly if you want the source file overwritten (default is always a copy).
 
 ## Layout

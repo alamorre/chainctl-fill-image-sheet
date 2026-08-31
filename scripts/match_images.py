@@ -50,6 +50,8 @@ REGISTRY_ALIASES = {
     "registry-1.docker.io": "docker.io",
 }
 
+DEFAULT_DESTINATION_ORG = "chainguard-private"
+
 TRUE_VALUES = {"yes", "y", "true", "required", "require", "1", "fips"}
 FALSE_VALUES = {"no", "n", "false", "not required", "non fips", "nonfips", "0"}
 
@@ -590,7 +592,7 @@ def choose_candidates(
 
 
 def equivalent(repo: CatalogRepo, tags: list[str], destination_org: str | None) -> str:
-    org = destination_org or "ORGANIZATION"
+    org = destination_org or DEFAULT_DESTINATION_ORG
     tag = tags[0] if tags and tags[0] in repo.active_tags else ("latest" if "latest" in repo.active_tags and not tags else "")
     return f"cgr.dev/{org}/{repo.name}" + (f":{tag}" if tag else "")
 
@@ -841,7 +843,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-csv", type=Path)
     parser.add_argument("--result-json", type=Path)
     parser.add_argument("--summary-json", type=Path)
-    parser.add_argument("--destination-org")
+    parser.add_argument(
+        "--destination-org",
+        help=f"Registry organization for equivalent image references (default: {DEFAULT_DESTINATION_ORG})",
+    )
     parser.add_argument("--allow-overwrite", action="store_true", help="Allow source replacement only when the user explicitly requested it")
     return parser.parse_args()
 

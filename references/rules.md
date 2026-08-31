@@ -45,4 +45,4 @@ Check requested tags only against active tags returned by `chainctl`. Distinguis
 - `possible_match_review`: one conservative fuzzy candidate remains; require review rather than autofill.
 - `no_match`: no defensible candidate exists.
 
-An active repository with `UNKNOWN`, missing, or internal/unclassified tier is evidence that the repository exists, not that it is customer-ready. State this limitation in verdict/notes. Never invent a customer registry namespace. Use `cgr.dev/ORGANIZATION/<repo>:<tag>` unless the user provides a destination organization.
+An active repository with `UNKNOWN`, missing, or internal/unclassified tier is evidence that the repository exists, not that it is customer-ready. State this limitation in verdict/notes. Use `cgr.dev/chainguard-private/<repo>:<tag>` by default. Use a different registry organization only when the user provides one explicitly.
