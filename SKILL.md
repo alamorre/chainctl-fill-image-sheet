@@ -48,7 +48,7 @@ python3 scripts/match_images.py \
   --summary-json "$RUN_DIR/summary.json"
 ```
 
-Add `--destination-org NAME` only when the user supplies the destination registry organization. Without it, the script uses the explicit `cgr.dev/ORGANIZATION/...` placeholder.
+Add `--destination-org NAME` only when the user supplies a different destination registry organization. Without it, the script uses `cgr.dev/chainguard-private/...`.
 Add `--allow-overwrite` only when the user explicitly requests source replacement.
 
 For XLSX or Google Sheets, inspect cell values and formulas without flattening the workbook, write the relevant sheet rows as a UTF-8 JSON array-of-arrays, and run:

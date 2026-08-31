@@ -117,7 +117,13 @@ class MatcherTests(unittest.TestCase):
             "no_match",
         ])
         self.assertEqual(result["row_results"][1]["match"]["candidates"], ["openssl-fips"])
-        self.assertTrue(result["row_results"][0]["match"]["equivalent"].startswith("cgr.dev/ORGANIZATION/"))
+        self.assertTrue(result["row_results"][0]["match"]["equivalent"].startswith("cgr.dev/chainguard-private/"))
+
+    def test_destination_org_overrides_chainguard_private_default(self):
+        default_match = match_one("nginx:1.25", "", "no", CATALOG, None)
+        override_match = match_one("nginx:1.25", "", "no", CATALOG, "acme")
+        self.assertEqual(default_match["equivalent"], "cgr.dev/chainguard-private/nginx:1.25")
+        self.assertEqual(override_match["equivalent"], "cgr.dev/acme/nginx:1.25")
 
     def test_explicit_non_fips_excludes_fips_alias(self):
         rows = [["Image", "FIPS", "Version"], ["openssl", "No", "3.0"]]
